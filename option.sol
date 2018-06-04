@@ -18,12 +18,12 @@ contract CallOpt{
 	 bool long_satisfied;
 	 uint short; //the short money
 	 bool short_satisfied;
-	 enum State { Inactive, Active, Mature }; 
+	 enum State { Inactive, Active, Mature }
 	 State public state; 
 
 	 uint strike; //the strike price, in USD
 
-	 mapping (string => uint) public balances; //the eth balances. 'Buyer' => Balance, 'Seller' => Balance
+	 mapping (string => uint) balances; //the eth balances. 'Buyer' => Balance, 'Seller' => Balance
 	 mapping (address => uint) public refund_balances; 
 
 	 //transfer of ownership
@@ -46,25 +46,6 @@ contract CallOpt{
 	 	state=State.Inactive; //set the state to be inactive in the beginning
 	 }
 
-	 //buyer sends the initial eth to the contract
-	 function buyerDeal() payable isVerifiedBuyer{
-	 	if (long>msg.value){
-	 		revert();
-	 	}
-	 	refund=msg.value-long;
-	 	refund_balances[msg.sender]+=refund;
-	 	long_satisfied=true;
-	 }
-
-	 function sellerDeal () payable isVerifiedSeller{
-	 	if (short>msg.value){
-	 		revert();
-	 	}
-	 	refund=msg.value-short;
-	 	refund_balances[msg.sender]+=refund;
-	 	short_satisfied=true;
-	 }
-
 	 function activeContract() sudo {
 	 	//the function to activate the contract 
 	 	//only sudo user can call this function 
@@ -74,7 +55,12 @@ contract CallOpt{
 	 	state=State.Active;
 	 }
 
-	 function MatureContract(price, ex) sudo {
+	 function MatureContract(uint price, uint ex) sudo {
+	 	uint eth_price;
+	 	uint strike_price;
+	 	uint hypo_proceeds;
+	 	uint max_proceeds;
+	 	uint proceeds;
 	 	//perform the action when contract matures
 	 	if (state==State.Inactive){
 	 		revert();
@@ -95,24 +81,26 @@ contract CallOpt{
 
 	 function DeActiveContract() sudo {
 	 	//Deactive contract 
-	 	state=State.Inactive
+	 	state=State.Inactive;
 	 }
 
-	 function initBuyerTransfer(target_price, target_add) sudo {
+	 function initBuyerTransfer(uint target_price, address target_add) sudo {
 	 	//sudo user initiate the buyer transfer process 
-	 	buyerTransfer=true;
-	 	transfer_buyer=target_add;
+	 	buyer_transfer=true;
+	 	buyer_transfer_add=target_add;
 	 	buyer_transfer_price=target_price;
 	 }
 
-	 function initSellerTransfer(target_price, target_add) sudo {
-	 	//sudo user initiate teh seller transfer process
-	 	sellerTransfer=true;
+	 function initSellerTransfer(uint target_price, address target_add) sudo {
+	 	//sudo user initiate the seller transfer process
+	 	seller_transfer=true;
 	 	seller_transfer_add=target_add;
 	 	seller_transfer_price=target_price;
 	 }
 
 	 function buyerTransfer(address target) payable isVerifiedBuyer{
+	 	uint infund;
+	 	uint refund;
 	 	require(
 	 		buyer_transfer == true, "Not for sale at the moment!"
 	 	);
@@ -132,11 +120,13 @@ contract CallOpt{
 	 }
 
 	 function sellerTransfer(address target) isVerifiedSeller payable{
+	 	uint infund;
+	 	uint refund;
 	 	require(
 	 		seller_transfer == true, "Not for sale at the moment!"
 	 	);
 	 	infund=msg.value;
-	    if(infund<seller_transfer_pricer){
+	    if(infund<seller_transfer_price){
 	 		//not enough fund, revert transaction
 	 		revert();
 	 	}
@@ -167,10 +157,30 @@ contract CallOpt{
         return true;
     }
 
-	 //the fallback function 
+	 //the fallback function to save money sent to here by mistake
 	 function() public payable{
+	 	address sender;
+	 	uint refund;
 	 	sender=msg.sender; //get the address of the sender of the message
-
+	 	if (sender==buyer){
+		 	if (long>msg.value){
+		 		revert();
+		 	}
+		 	refund=msg.value-long;
+		 	refund_balances[msg.sender]+=refund;
+		 	long_satisfied=true;
+	 	}
+	 	else if (sender==seller){
+		 	if (short>msg.value){
+		 		revert();
+		 	}
+		 	refund=msg.value-short;
+		 	refund_balances[msg.sender]+=refund;
+		 	short_satisfied=true;
+	 	}
+	 	else {
+	 		revert();
+	 	}
 	 }
 
 	 modifier sudo{
@@ -195,5 +205,15 @@ contract CallOpt{
 	 		msg.sender == seller_transfer_add, "You are not Seller."
 	 	);
 	 	_; //insert modified code
+	 }
+
+	 //util fundtion
+	 function min(uint a, uint b) returns (uint){
+	 	if (a>b) {
+	 		return a;
+	 	}
+	 	else {
+	 		return b;
+	 	}
 	 }
 }
