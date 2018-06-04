@@ -21,6 +21,7 @@ contract CallOpt{
 	 uint current; //current price 
 
 	 mapping (string => uint) public balances; //the eth balances. 'Buyer' => Balance, 'Seller' => Balance
+	 mapping (address => uint) public refund_balances; 
 
 	 bool buyer_transfer;
 	 address buyer_transfer_add;
@@ -69,15 +70,54 @@ contract CallOpt{
 	 	seller_transfer_price=target_price;
 	 }
 
-	 function buyerTransfer(address target) isVerifiedBuyer payable{
-
+	 function buyerTransfer(address target) payable isVerifiedBuyer{
+	 	infund=msg.value;
+	    if(infund<buyer_transfer_price){
+	 		//not enough fund, revert transaction
+	 		revert();
+	 	}
+	 	refund=infund - buyer_transfer_price; 
+	 	if (refund>=0){
+	 		refund_balances[target]+=refund;
+	 	}
+	 	//send the fund from new buyer to old buyer
+	 	buyer.transfer(buyer_transfer_price);
+	 	buyer=target;
+	 	buyer_transfer=false;
 	 }
 
 	 function sellerTransfer(address target) isVerifiedSeller payable{
-	 	seller=target;
-	 	sellerTransfer=false;//stop the transfer price officially
+	 	infund=msg.value;
+	    if(infund<seller_transfer_pricer){
+	 		//not enough fund, revert transaction
+	 		revert();
+	 	}
+	 	refund=infund - seller_transfer_price;
+	 	if (refund>=0){
+	 		refund_balances[target]+=refund;
+	 	}
+	 	seller.transfer(seller_transfer_price);
+	 	seller=target; 	
+	 	seller_transfer=false;
 	 }
 
+	//withdraw funds in the balance
+    function withdraw() public returns (bool) {
+        uint amount = refund_balances[msg.sender];
+        if (amount > 0) {
+            // It is important to set this to zero because the recipient
+            // can call this function again as part of the receiving call
+            // before `send` returns.
+            refund_balances[msg.sender] = 0;
+
+            if (!msg.sender.send(amount)) {
+                // No need to call throw here, just reset the amount owing
+                refund_balances[msg.sender] = amount;
+                return false;
+            }
+        }
+        return true;
+    }
 
 	 //the fallback function 
 	 function() public payable{
