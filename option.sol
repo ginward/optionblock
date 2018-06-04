@@ -14,15 +14,19 @@ contract CallOpt{
 	 address public god; //the creator of the call option
 	 address public buyer; //the buyer of the call option
 	 address public seller; //the seller of the call option 
+	 uint long; //the long money
+	 bool long_satisfied;
+	 uint short; //the short money
+	 bool short_satisfied;
 	 enum State { Inactive, Active, Mature }; 
 	 State public state; 
 
-	 uint strike; //the strike price, u
-	 uint current; //current price 
+	 uint strike; //the strike price, in USD
 
 	 mapping (string => uint) public balances; //the eth balances. 'Buyer' => Balance, 'Seller' => Balance
 	 mapping (address => uint) public refund_balances; 
 
+	 //transfer of ownership
 	 bool buyer_transfer;
 	 address buyer_transfer_add;
 	 uint buyer_transfer_price;
@@ -31,24 +35,62 @@ contract CallOpt{
 	 address seller_transfer_add; 
 	 uint seller_transfer_price;
 
-	 function CallOpt(address initbuyer, address initseller, uint initstrike) public {
+	 function CallOpt(address initbuyer, address initseller, uint initstrike, uint longp, uint shortp) public {
 	 	//the constructor sets the owner
 	 	god=msg.sender;
 	 	buyer=initbuyer;
 	 	seller=initseller;
 	 	strike=initstrike;
+	 	long=longp;
+	 	short=shortp;
 	 	state=State.Inactive; //set the state to be inactive in the beginning
+	 }
+
+	 //buyer sends the initial eth to the contract
+	 function buyerDeal() payable isVerifiedBuyer{
+	 	if (long>msg.value){
+	 		revert();
+	 	}
+	 	refund=msg.value-long;
+	 	refund_balances[msg.sender]+=refund;
+	 	long_satisfied=true;
+	 }
+
+	 function sellerDeal () payable isVerifiedSeller{
+	 	if (short>msg.value){
+	 		revert();
+	 	}
+	 	refund=msg.value-short;
+	 	refund_balances[msg.sender]+=refund;
+	 	short_satisfied=true;
 	 }
 
 	 function activeContract() sudo {
 	 	//the function to activate the contract 
-	 	//only owner can call this function 
+	 	//only sudo user can call this function 
+	 	if (!long_satisfied || !short_satisfied){
+	 		revert();
+	 	}
 	 	state=State.Active;
 	 }
 
-	 function MatureContract() sudo {
+	 function MatureContract(price, ex) sudo {
 	 	//perform the action when contract matures
-
+	 	if (state==State.Inactive){
+	 		revert();
+	 	}
+	 	//price is the current price, in usd 
+	 	eth_price = price * ex;
+	 	strike_price = price * ex;
+	 	if (eth_price>strike_price){
+	 		hypo_proceeds=eth_price-strike_price;
+	 		max_proceeds=long+short;
+	 		proceeds=min(hypo_proceeds,max_proceeds);
+	 		refund_balances[buyer]+=proceeds;
+	 	} else if (eth_price<strike_price){
+	 		max_proceeds=long+short;
+	 		refund_balances[seller]+=max_proceeds;
+	 	}
 	 }
 
 	 function DeActiveContract() sudo {
@@ -71,6 +113,9 @@ contract CallOpt{
 	 }
 
 	 function buyerTransfer(address target) payable isVerifiedBuyer{
+	 	require(
+	 		buyer_transfer == true, "Not for sale at the moment!"
+	 	);
 	 	infund=msg.value;
 	    if(infund<buyer_transfer_price){
 	 		//not enough fund, revert transaction
@@ -80,13 +125,16 @@ contract CallOpt{
 	 	if (refund>=0){
 	 		refund_balances[target]+=refund;
 	 	}
-	 	//send the fund from new buyer to old buyer
-	 	buyer.transfer(buyer_transfer_price);
+	 	//increase of balance of the fund of the old buyer
+	 	refund_balances[buyer]+=buyer_transfer_price;
 	 	buyer=target;
 	 	buyer_transfer=false;
 	 }
 
 	 function sellerTransfer(address target) isVerifiedSeller payable{
+	 	require(
+	 		seller_transfer == true, "Not for sale at the moment!"
+	 	);
 	 	infund=msg.value;
 	    if(infund<seller_transfer_pricer){
 	 		//not enough fund, revert transaction
@@ -134,10 +182,7 @@ contract CallOpt{
 	 }
 
 	 modifier isVerifiedBuyer{
-	 	//verify that the buyer is the predefined buyer, and there is sufficient funds 
-	 	require(
-	 		buyer_transfer == true, "Not for sale at the moment!"
-	 	);
+	 	//verify that the buyer is the predefined buyer
 	 	require(
 	 		msg.sender == buyer_transfer_add, "You are not Buyer."
 	 	);
@@ -145,10 +190,7 @@ contract CallOpt{
 	 }
 
 	 modifier isVerifiedSeller{
-	 	//verify that the buyer is the predefined seller, and there is sufficient funds 
-	 	require(
-	 		seller_transfer == true, "Not for sale at the moment!"
-	 	);
+	 	//verify that the buyer is the predefined seller
 	 	require(
 	 		msg.sender == seller_transfer_add, "You are not Seller."
 	 	);
