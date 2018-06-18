@@ -14,6 +14,20 @@ import "https://github.com/ginward/solidity-examples/blob/master/heap.sol" //imp
 contract underwriteEng{
 	uint constant contract_size = 100; //the number of stocks underlying the contract
 	uint constant maturity_date = 20180701; //the maturity date should be in YYYYMMDD 
-	uint constant strike = 200; 
+	uint constant strike = 200; //the strike price of the option contract
 	string constant ticker = "AAPL"; //the apple sticker
+
+	struct bid {
+		//the bid object 
+		uint price; 
+		address bidder;
+		uint timestamp;
+	}
+
+	struct ask {
+		//the ask object
+		uint price; 
+		address asker;
+		uint timestamp;
+	}
 }
