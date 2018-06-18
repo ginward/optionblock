@@ -8,6 +8,12 @@ pragma solidity ^0.4.24;
  *  http://www.apache.org/licenses/
  */
 
+import "https://github.com/ginward/openzeppelin-solidity/blob/master/contracts/math/SafeMath.sol"; //import the safe math library
+import "https://github.com/ginward/solidity-examples/blob/master/heap.sol" //import the heap library to maintain a sorted price list
+
 contract underwriteEng{
-	
+	uint constant contract_size = 100; //the number of stocks underlying the contract
+	uint constant maturity_date = 20180701; //the maturity date should be in YYYYMMDD 
+	uint constant strike = 200; 
+	string constant ticker = "AAPL"; //the apple sticker
 }
