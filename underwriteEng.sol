@@ -30,4 +30,10 @@ contract underwriteEng{
 		address asker;
 		uint timestamp;
 	}
+
+	//the heap structures
+	using MinHeap_impl[ask] for AskOrder[ask]; //ask orderbook is a minimum heap
+	using MaxHeap_impl[bid] for BidOrder[bid]; //bid orderbook is a maximum heap
+
+
 }
