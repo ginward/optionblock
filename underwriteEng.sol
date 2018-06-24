@@ -8,8 +8,8 @@ pragma solidity ^0.4.24;
  *  http://www.apache.org/licenses/
  */
 
-import "https://github.com/ginward/openzeppelin-solidity/blob/master/contracts/math/SafeMath.sol"; //import the safe math library
-import "https://github.com/ginward/rbt-solidity/blob/master/contracts/RedBlackTree.sol" //import the red black tree
+import "https://github.com/ginward/openzeppelin-solidity/contracts/math/SafeMath64.sol"; //import the safe math library
+import "https://github.com/ginward/rbt-solidity/contracts/RedBlackTree.sol"; //import the red black tree
 
 
 contract underwriteEng{
@@ -74,11 +74,11 @@ contract underwriteEng{
 	}
 	
 	function cancelBid() returns (bool){
-		add=msg.sender;
+		address add=msg.sender;
 	}
 
 	function cancelAsk() returns (bool){
-		add=msg.sender;
+		address add=msg.sender;
 	}
 
 	function newOrderID() returns (uint64){
