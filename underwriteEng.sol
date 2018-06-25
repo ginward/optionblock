@@ -82,7 +82,10 @@ contract underwriteEng{
 	}
 
 	function newOrderID() returns (uint64){
-		orderid=orderid.add(1);
+		newid=orderid.add(1);
+		if (newid<orderid)
+			revert("ID Overflow");
+		orderid=newid;
 		return orderid;
 	}
 
