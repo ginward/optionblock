@@ -19,8 +19,8 @@ contract underwriteEng{
 
 	uint constant contract_size = 100; //the number of stocks underlying the contract
 	uint constant maturity_date = 20180701; //the maturity date should be in YYYYMMDD 
-	uint constant strike = 200; //the strike price of the option contract
-	string constant ticker = "AAPL"; //the apple sticker
+	uint constant strike = 200; //the strike price of the option contract, in USD
+	string constant ticker = "AAPL"; //the apple ticker
 
 	mapping (address => bid) bidorders;
 	mapping (address => ask) askorders;
@@ -68,10 +68,10 @@ contract underwriteEng{
 		 * Function to place ask order
 		 * One address can only place one ask
 		 */
-		uint m=msg.value;
+		uint m=msg.value; //the money sent alone is the margin
 		ask memory askObj;
 		askObj.margin=m;
-		askObj.price=p;
+		askObj.price=p; //the ask price is passed in as a parameter
 		askObj.timestamp=now;
 		orderid=newOrderID();
 		askObj.id=orderid;
