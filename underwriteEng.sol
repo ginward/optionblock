@@ -13,6 +13,10 @@ import "https://github.com/ginward/rbt-solidity/contracts/RedBlackTree.sol"; //i
 
 
 contract underwriteEng{
+
+	using SafeMath for uint64;
+	mapping (address => uint) balance; //the balance account for all traders
+
 	uint constant contract_size = 100; //the number of stocks underlying the contract
 	uint constant maturity_date = 20180701; //the maturity date should be in YYYYMMDD 
 	uint constant strike = 200; //the strike price of the option contract
@@ -20,9 +24,7 @@ contract underwriteEng{
 
 	mapping (address => bid) bidorders;
 	mapping (address => ask) askorders;
-
 	uint64 orderid=0; //the unique order id
-	using SafeMath for uint64;
 
 	struct bid {
 		//the bid object 
@@ -34,7 +36,8 @@ contract underwriteEng{
 
 	struct ask {
 		//the ask object
-		uint price; 
+		uint margin; //when the trader asks, he needs to provide a margin 
+		uint price;
 		uint volume;
 		uint timestamp;
 		uint64 id; //id of the transaction
@@ -45,11 +48,12 @@ contract underwriteEng{
 	RedBlackTree.Tree AskOrderBook;
 	RedBlackTree.Tree BidOrderBook;
 
-	function placeBid(uint p) returns (bool){
+	function placeBid() public payable returns (bool){
 		/*
          * Function to place bid order
          * One address can only place one bid
 		 */
+		uint p=msg.value;
 		bid memory bidObj; 
 		bidObj.price=p;
 		bidObj.timestamp=now;
@@ -59,12 +63,14 @@ contract underwriteEng{
 		BidOrderBook.insert(orderid,p);
 	}
 
-	function placeAsk(uint p) returns (bool){
+	function placeAsk(uint p) public payable returns (bool){
 		/*
 		 * Function to place ask order
 		 * One address can only place one ask
 		 */
+		uint m=msg.value;
 		ask memory askObj;
+		askObj.margin=m;
 		askObj.price=p;
 		askObj.timestamp=now;
 		orderid=newOrderID();
@@ -73,17 +79,19 @@ contract underwriteEng{
 		AskOrderBook.insert(orderid,p);
 	}
 	
-	function cancelBid() returns (bool){
-		address add=msg.sender;
+	function cancelBid() public returns (bool){
+		uint64 id=bidorders[msg.sender].id;
+
 	}
 
-	function cancelAsk() returns (bool){
-		address add=msg.sender;
+	function cancelAsk() public returns (bool){
+		uint64 id=askorders[msg.sender].id;
 	}
 
-	function newOrderID() returns (uint64){
-		newid=orderid.add(1);
+	function newOrderID() private returns (uint64){
+		uint64 newid=orderid.add(1);
 		if (newid<orderid)
+			//prevent order overflow
 			revert("ID Overflow");
 		orderid=newid;
 		return orderid;
