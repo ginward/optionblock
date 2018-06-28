@@ -11,10 +11,10 @@ pragma solidity ^0.4.24;
 import "https://github.com/ginward/openzeppelin-solidity/contracts/math/SafeMath64.sol"; //import the safe math library
 import "https://github.com/ginward/rbt-solidity/contracts/RedBlackTree.sol"; //import the red black tree
 
-
 contract underwriteEng{
 
 	using SafeMath for uint64;
+	mapping (address => uint) margin; //the balance of margin. cannot be withdrawn. 
 	mapping (address => uint) balance; //the balance account for all traders
 
 	uint constant contract_size = 100; //the number of stocks underlying the contract
@@ -22,9 +22,14 @@ contract underwriteEng{
 	uint constant strike = 200; //the strike price of the option contract, in USD
 	string constant ticker = "AAPL"; //the apple ticker
 
-	mapping (address => bid) bidorders;
-	mapping (address => ask) askorders;
-	uint64 orderid=0; //the unique order id
+	uint64 nodeid_bid=0; //the unique node id which maps to node that contains the order information for bid 
+	uint64 nodeid_ask=0; //the unique node id which maps to node that contains the order information for ask
+
+	mapping (address => uint64) bidorders; //map each owner to a tree node
+	mapping (address => uint64) askorders;
+
+	mapping (uint64 => mapping(address => bid)) bidnodes; //map each tree node to bid orders
+	mapping (uint64 => mapping(address => ask)) asknodes; //map each tree node to ask orders
 
 	struct bid {
 		//the bid object 
@@ -48,53 +53,75 @@ contract underwriteEng{
 	RedBlackTree.Tree AskOrderBook;
 	RedBlackTree.Tree BidOrderBook;
 
-	function placeBid() public payable returns (bool){
+	function placeBid() public payable{
 		/*
          * Function to place bid order
          * One address can only place one bid
 		 */
+
+		 //first check if the sender already has an order. if so, he is not allowed to send another one until this one gets executed
+		 //expect to upgrade to multiple orders in version 2.0
+		if (bidorders[msg.sender]!=0){
+			revert();
+		}
+
 		uint p=msg.value;
 		bid memory bidObj; 
 		bidObj.price=p;
 		bidObj.timestamp=now;
-		orderid=newOrderID();
-		bidObj.id=orderid;
-		bidorders[msg.sender]=bidObj;
-		BidOrderBook.insert(orderid,p);
+		nodeid_bid=nodeid_bid.add(1);
+		bidorders[msg.sender]=nodeid_bid;
+		BidOrderBook.insert(nodeid_bid,p);
+		binodes[nodeid_bid][msg.sender]=bidObj;
 	}
 
-	function placeAsk(uint p) public payable returns (bool){
+	function placeAsk(uint p) public payable{
 		/*
 		 * Function to place ask order
 		 * One address can only place one ask
 		 */
+
+		//check if the sender already has an order
+		if(askorders[msg.sender]!=0){
+			revert();
+		}
+		
 		uint m=msg.value; //the money sent alone is the margin
 		ask memory askObj;
 		askObj.margin=m;
 		askObj.price=p; //the ask price is passed in as a parameter
 		askObj.timestamp=now;
-		orderid=newOrderID();
-		askObj.id=orderid;
-		askorders[msg.sender]=askObj;
-		AskOrderBook.insert(orderid,p);
+		nodeid_ask=nodeid_ask.add(1);
+		askorders[msg.sender]=nodeid_ask;
+		AskOrderBook.insert(nodeid_ask,p);
+		asknodes[nodeid_ask][msg.sender]=askObj;
 	}
 	
-	function cancelBid() public returns (bool){
+	function matchOrders() private {
+		/*
+  	 	 * Function to match the orders in the orderbook
+		 */
+		 uint64 maxbid_id=BidOrderBook.getMaximum();
+		 RedBlackTree.Tree memory maxbid_item=BidOrderBook.getItem(maxbid_id);
+		 maxprice=maxbid_item.value; 
+		 minask_id=AskOrderBook.getMinimum();
+		 RedBlackTree.Tree memory minask_item=AskOrderBook.getItem(minask_id);
+		 minprice=minask_item.value; 
+
+		 //check if the orderbook crosses
+		 if (minprice<maxprice){
+		 	//the orderbook crosses
+
+		 }
+	}
+
+	function cancelBid() public{
 		uint64 id=bidorders[msg.sender].id;
 
 	}
 
-	function cancelAsk() public returns (bool){
+	function cancelAsk() public{
 		uint64 id=askorders[msg.sender].id;
-	}
-
-	function newOrderID() private returns (uint64){
-		uint64 newid=orderid.add(1);
-		if (newid<orderid)
-			//prevent order overflow
-			revert("ID Overflow");
-		orderid=newid;
-		return orderid;
 	}
 
 }
