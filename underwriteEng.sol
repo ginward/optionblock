@@ -72,7 +72,7 @@ contract underwriteEng{
 		nodeid_bid=nodeid_bid.add(1);
 		bidorders[msg.sender]=nodeid_bid;
 		BidOrderBook.insert(nodeid_bid,p);
-		binodes[nodeid_bid][msg.sender]=bidObj;
+		bidnodes[nodeid_bid][msg.sender]=bidObj;
 	}
 
 	function placeAsk(uint p) public payable{
@@ -85,7 +85,7 @@ contract underwriteEng{
 		if(askorders[msg.sender]!=0){
 			revert();
 		}
-		
+
 		uint m=msg.value; //the money sent alone is the margin
 		ask memory askObj;
 		askObj.margin=m;
@@ -102,11 +102,11 @@ contract underwriteEng{
   	 	 * Function to match the orders in the orderbook
 		 */
 		 uint64 maxbid_id=BidOrderBook.getMaximum();
-		 RedBlackTree.Tree memory maxbid_item=BidOrderBook.getItem(maxbid_id);
-		 maxprice=maxbid_item.value; 
-		 minask_id=AskOrderBook.getMinimum();
-		 RedBlackTree.Tree memory minask_item=AskOrderBook.getItem(minask_id);
-		 minprice=minask_item.value; 
+		 RedBlackTree.Item memory maxbid_item=BidOrderBook.items[maxbid_id];
+		 uint maxprice=maxbid_item.value; 
+		 uint64 minask_id=AskOrderBook.getMinimum();
+		 RedBlackTree.Item memory minask_item=AskOrderBook.items[minask_id];
+		 uint minprice=minask_item.value; 
 
 		 //check if the orderbook crosses
 		 if (minprice<maxprice){
@@ -116,12 +116,12 @@ contract underwriteEng{
 	}
 
 	function cancelBid() public{
-		uint64 id=bidorders[msg.sender].id;
+		uint64 id=bidorders[msg.sender];
 
 	}
 
 	function cancelAsk() public{
-		uint64 id=askorders[msg.sender].id;
+		uint64 id=askorders[msg.sender];
 	}
 
 }
