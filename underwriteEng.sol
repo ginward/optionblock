@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 /*
  *  The Option Underwriting Engine on Ethereum
+ *  In this version, a owner can have only one bid/ask or option contracts
  *  Author: Jinhua Wang 
  *  Apache License
  *  Version 2.0, January 2004
@@ -19,7 +20,7 @@ contract underwriteEng{
 	mapping (address => uint) margin; //the balance of margin. cannot be withdrawn. 
 	mapping (address => uint) balance; //the balance account for all traders
 
-	uint constant contract_size = 100; //the number of stocks underlying the contract
+	uint constant contract_size = 100; //the number of stocks underlying the contract. Uint is 1 cent USD. 100 cents = 1USD
 	uint constant maturity_date = 20180701; //the maturity date should be in YYYYMMDD 
 	uint constant strike = 200; //the strike price of the option contract, in USD
 	string constant ticker = "AAPL"; //the apple ticker
@@ -32,6 +33,9 @@ contract underwriteEng{
 
 	mapping (uint64 => mapping(address => bid)) bidnodes; //map each tree node to bid orders
 	mapping (uint64 => mapping(address => ask)) asknodes; //map each tree node to ask orders
+
+	mapping (address => bytes32) optionOwners; //map to the options. one owner can have only one option.
+	mapping (bytes32 => option) options; //option details
 
 	struct bid {
 		//the bid object 
@@ -48,6 +52,14 @@ contract underwriteEng{
 		uint timestamp;
 	}
 
+	struct option {
+		address long;
+		address short; 
+		uint volume;
+		uint margin; 
+		uint timestamp;
+	}
+
 	//the red black tree structures 
 	using RedBlackTree for RedBlackTree.Tree;
 	RedBlackTree.Tree AskOrderBook;
@@ -61,7 +73,7 @@ contract underwriteEng{
 
 		 //first check if the sender already has an order. if so, he is not allowed to send another one until this one gets executed
 		 //expect to upgrade to multiple orders in version 2.0
-		if (bidorders[msg.sender]!=0){
+		if (bidorders[msg.sender]!=0||askorders[msg.sender]!=0||optionOwners[msg.sender]!=0){
 			revert();
 		}
 
@@ -84,7 +96,7 @@ contract underwriteEng{
 		 */
 
 		//check if the sender already has an order
-		if(askorders[msg.sender]!=0){
+		if(bidorders[msg.sender]!=0||askorders[msg.sender]!=0||optionOwners[msg.sender]!=0){
 			revert();
 		}
 
