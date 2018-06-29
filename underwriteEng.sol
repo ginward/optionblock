@@ -36,7 +36,6 @@ contract underwriteEng{
 		uint price; 
 		uint volume;
 		uint timestamp;
-		uint64 id; //id of the transaction
 	}
 
 	struct ask {
@@ -45,7 +44,6 @@ contract underwriteEng{
 		uint price;
 		uint volume;
 		uint timestamp;
-		uint64 id; //id of the transaction
 	}
 
 	//the red black tree structures 
@@ -110,7 +108,7 @@ contract underwriteEng{
 
 		 //check if the orderbook crosses
 		 if (minprice<maxprice){
-		 	//the orderbook crosses
+		 	//the orderbook crosses, execute the orders
 
 		 }
 	}
