@@ -8,12 +8,14 @@ pragma solidity ^0.4.24;
  *  http://www.apache.org/licenses/
  */
 
+import "https://github.com/ginward/openzeppelin-solidity/contracts/math/SafeMath.sol"; //import the safe math library
 import "https://github.com/ginward/openzeppelin-solidity/contracts/math/SafeMath64.sol"; //import the safe math library
 import "https://github.com/ginward/rbt-solidity/contracts/RedBlackTree.sol"; //import the red black tree
 
 contract underwriteEng{
 
-	using SafeMath for uint64;
+	using SafeMath for uint;
+	using SafeMath64 for uint64;
 	mapping (address => uint) margin; //the balance of margin. cannot be withdrawn. 
 	mapping (address => uint) balance; //the balance account for all traders
 
@@ -64,6 +66,8 @@ contract underwriteEng{
 		}
 
 		uint p=msg.value;
+		//add the money to balance
+		balance[msg.sender].add(p);
 		bid memory bidObj; 
 		bidObj.price=p;
 		bidObj.timestamp=now;
@@ -85,6 +89,8 @@ contract underwriteEng{
 		}
 
 		uint m=msg.value; //the money sent alone is the margin
+		//add the money to margin 
+		margin[msg.sender].add(m);
 		ask memory askObj;
 		askObj.margin=m;
 		askObj.price=p; //the ask price is passed in as a parameter
