@@ -25,8 +25,8 @@ contract underwriteEng{
 	uint constant strike = 200; //the strike price of the option contract, in USD
 	string constant ticker = "AAPL"; //the apple ticker
 
-	uint64 nodeid_bid=0; //the unique node id which maps to node that contains the order information for bid 
-	uint64 nodeid_ask=0; //the unique node id which maps to node that contains the order information for ask
+	uint64 nodeid_bid=1; //the unique node id which maps to node that contains the order information for bid 
+	uint64 nodeid_ask=1; //the unique node id which maps to node that contains the order information for ask
 
 	mapping (address => uint64) bidorders; //map each owner to a tree node
 	mapping (address => uint64) askorders;
@@ -122,15 +122,35 @@ contract underwriteEng{
   	 	 * Function to match the orders in the orderbook
 		 */
 		 uint64 maxbid_id=BidOrderBook.getMaximum();
+		 if (maxbid_id==0){
+		 	revert();
+		 }
 		 RedBlackTree.Item memory maxbid_item=BidOrderBook.items[maxbid_id];
 		 uint maxprice=maxbid_item.value; 
 		 uint64 minask_id=AskOrderBook.getMinimum();
+		 if(minask_id==0){
+		 	revert();
+		 }
 		 RedBlackTree.Item memory minask_item=AskOrderBook.items[minask_id];
 		 uint minprice=minask_item.value; 
 
 		 //check if the orderbook crosses
 		 if (minprice<maxprice){
 
+		 	bid[] bidArr=bidnodes[maxbid_id];
+		 	ask[] askArr=asknodes[minask_id];
+		 	if (bidArr.length==0){
+		 		BidOrderBook.remove(maxbid_id);
+		 		//could have been a recursive call to matchOrders. but considering it is not a good practice and could burn the money,
+		 		//did't implement it
+		 		revert();
+		 	}
+		 	if (askArr.length==0){
+		 		AskOrderBook.remove(minask_id);
+		 		revert();
+		 	}
+		 	bid bid_order=bidArr[0];
+		 	ask ask_order=askArr[0];
 		 	//the orderbook crosses, execute the orders
 		 	option memory opt;
 
