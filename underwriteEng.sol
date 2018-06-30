@@ -31,8 +31,8 @@ contract underwriteEng{
 	mapping (address => uint64) bidorders; //map each owner to a tree node
 	mapping (address => uint64) askorders;
 
-	mapping (uint64 => mapping(address => bid)) bidnodes; //map each tree node to bid orders
-	mapping (uint64 => mapping(address => ask)) asknodes; //map each tree node to ask orders
+	mapping (uint64 => bid[]) bidnodes; //map each tree node to bid orders
+	mapping (uint64 => ask[]) asknodes; //map each tree node to ask orders
 
 	mapping (address => bytes32) optionOwners; //map to the options. one owner can have only one option.
 	mapping (bytes32 => option) options; //option details
@@ -42,6 +42,7 @@ contract underwriteEng{
 		uint price; 
 		uint volume;
 		uint timestamp;
+		address owner;
 	}
 
 	struct ask {
@@ -50,6 +51,7 @@ contract underwriteEng{
 		uint price;
 		uint volume;
 		uint timestamp;
+		address owner; 
 	}
 
 	struct option {
@@ -83,10 +85,11 @@ contract underwriteEng{
 		bid memory bidObj; 
 		bidObj.price=p;
 		bidObj.timestamp=now;
+		bidObj.owner=msg.sender;
 		nodeid_bid=nodeid_bid.add(1);
 		bidorders[msg.sender]=nodeid_bid;
 		BidOrderBook.insert(nodeid_bid,p);
-		bidnodes[nodeid_bid][msg.sender]=bidObj;
+		bidnodes[nodeid_bid].push(bidObj);
 	}
 
 	function placeAsk(uint p) public payable{
@@ -107,10 +110,11 @@ contract underwriteEng{
 		askObj.margin=m;
 		askObj.price=p; //the ask price is passed in as a parameter
 		askObj.timestamp=now;
+		askObj.owner=msg.sender;
 		nodeid_ask=nodeid_ask.add(1);
 		askorders[msg.sender]=nodeid_ask;
 		AskOrderBook.insert(nodeid_ask,p);
-		asknodes[nodeid_ask][msg.sender]=askObj;
+		asknodes[nodeid_ask].push(askObj);
 	}
 	
 	function matchOrders() private {
@@ -126,7 +130,9 @@ contract underwriteEng{
 
 		 //check if the orderbook crosses
 		 if (minprice<maxprice){
+
 		 	//the orderbook crosses, execute the orders
+		 	option memory opt;
 
 		 }
 	}
