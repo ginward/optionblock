@@ -17,7 +17,6 @@ contract exchange{
 
 	using SafeMath for uint;
 	using SafeMath64 for uint64;
-	mapping (address => uint) margin; //the balance of margin. cannot be withdrawn. 
 	mapping (address => uint) balance; //the balance account for all traders
 
 	uint constant contract_size = 100; //the number of stocks underlying the contract. Uint is 1 cent USD. 100 cents = 1USD
@@ -104,8 +103,6 @@ contract exchange{
 		}
 
 		uint m=msg.value; //the money sent alone is the margin
-		//add the money to margin 
-		margin[msg.sender].add(m);
 		ask memory askObj;
 		askObj.margin=m;
 		askObj.price=p; //the ask price is passed in as a parameter
@@ -153,7 +150,75 @@ contract exchange{
 		 	ask ask_order=askArr[0];
 		 	//the orderbook crosses, execute the orders
 		 	option memory opt;
+		 	opt.long=bid_order.owner;
+		 	opt.short=ask_order.owner;
+		 	//the bid volume
+		 	uint vol_bid=bid_order.volume;
+		 	//the ask volume
+		 	uint vol_ask=ask_order.volume;
 
+			if(vol_bid==vol_ask) {
+				//when bid volume is equal to ask volume
+		 		opt.volume=vol_ask; 
+		 		opt.margin=ask_order.margin;
+		 		opt.timestamp=now;
+		 		//if the bid or ask array is empty, should delete the array
+		 		if (bidArr.length==0) {
+		 			delete bidnodes[maxbid_id];
+		 			//delete the element in the mapping
+		 			delete bidorders[bid_order.owner];
+		 			//delete the element in the tree 
+		 			BidOrderBook.remove(maxbid_id);
+		 		} else {
+		 			//clear the outstanding bid order
+		 			delete bidArr[0];
+		 		}
+		 		if (askArr.length==0){
+		 			delete asknodes[minask_id];
+		 			delete askorders[ask_order.owner];
+		 			AskOrderBook.remove(minask_id);
+		 		} else {
+		 			//clean the outstanding ask order 
+		 			delete askArr[0];
+		 		}
+		 		
+		 	}
+		 	else if (vol_bid>vol_ask){
+		 		//bid volume > ask volume
+		 		opt.volume=vol_ask;
+		 		opt.margin=ask_order.margin;
+		 		opt.timestamp=now; 
+		 		//keep part of the bid order outstanding
+		 		bidArr[0].volume=bidArr[0].volume.sub(vol_ask);
+		 		//clear the entire array if the ask array is 0 
+		 		if (askArr.length==0){
+		 			delete asknodes[minask_id];
+		 			delete askorders[ask_order.owner];
+		 			AskOrderBook.remove(minask_id);		 			
+		 		} else {
+			 		//clear the outstanding ask order 
+			 		delete askArr[0];
+		 		}
+		 	}
+		 	else{
+		 		//ask volume > bid volume
+		 		opt.volume=vol_bid;
+		 		opt.margin=ask_order.margin; 
+		 		opt.timestamp=now;
+		 		//keep part of the ask order outstanding 
+		 		askArr[0].volume=askArr[0].volume.sub(vol_bid);
+		 		if (bidArr.length==0){
+		 			delete bidnodes[maxbid_id];
+		 			//delete the element in the mapping
+		 			delete bidorders[bid_order.owner];
+		 			//delete the element in the tree 
+		 			BidOrderBook.remove(maxbid_id);		 			
+		 		} else {
+		 			//clear the outstanding bid order
+		 			delete bidArr[0];		 			
+		 		}
+		 	}
+		 	
 		 }
 	}
 
