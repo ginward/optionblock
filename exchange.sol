@@ -266,7 +266,7 @@ contract exchange{
 		//delete from orderbook
 		for (uint i=0;i<askArr.length;i++){
 			ask ask_order=askArr[i];
-			if (ask_order.owner=msg.sender){
+			if (ask_order.owner==msg.sender){
 				marginOrder=ask_order.margin;
 				delete askArr[i];
 			}
