@@ -229,7 +229,7 @@ contract exchange{
 		 			delete bidArr[0];		 			
 		 		}
 		 	}
-
+		 	bytes32 hashOpt;
 		 	//hash the option contract and push it into the map of all options
 		 	hashOpt=keccak256(opt.long, opt.short, opt.volume, opt.margin, opt.timestamp);
 		 	options[hashOpt]=opt;
