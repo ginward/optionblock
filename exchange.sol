@@ -152,6 +152,17 @@ contract exchange{
 		 	option memory opt;
 		 	opt.long=bid_order.owner;
 		 	opt.short=ask_order.owner;
+		 	//check if the option owners still have orders outstanding
+		 	if(optionOwners[opt.long].length!=0){
+		 		//delete the bid 
+		 		delete bidArr[0];
+		 		revert();
+		 	}
+		 	if(optionOwners[opt.short].length!=0){
+		 		//delete the ask
+		 		delete askArr[0];
+		 		revert();
+		 	}
 		 	//the bid volume
 		 	uint vol_bid=bid_order.volume;
 		 	//the ask volume
@@ -218,7 +229,13 @@ contract exchange{
 		 			delete bidArr[0];		 			
 		 		}
 		 	}
-		 	
+
+		 	//hash the option contract and push it into the map of all options
+		 	hashOpt=keccak256(opt.long, opt.short, opt.volume, opt.margin, opt.timestamp);
+		 	options[hashOpt]=opt;
+		 	//keep track of who owns the option
+		 	optionOwners[opt.long]=hashOpt;
+		 	optionOwners[opt.short]=hashOpt;
 		 }
 	}
 
