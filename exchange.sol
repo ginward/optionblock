@@ -9,11 +9,12 @@ pragma solidity ^0.4.24;
  *  http://www.apache.org/licenses/
  */
 
+import "github.com/oraclize/ethereum-api/oraclizeAPI.sol"; //import the oraclize api
 import "https://github.com/ginward/openzeppelin-solidity/contracts/math/SafeMath.sol"; //import the safe math library
 import "https://github.com/ginward/openzeppelin-solidity/contracts/math/SafeMath64.sol"; //import the safe math library
 import "https://github.com/ginward/rbt-solidity/contracts/RedBlackTree.sol"; //import the red black tree
 
-contract exchange{
+contract exchange is usingOraclize{
 
 	using SafeMath for uint;
 	using SafeMath64 for uint64;
@@ -279,6 +280,11 @@ contract exchange{
 			AskOrderBook.remove(id);
 		}
 		askorders[msg.sender]=0;
+	}
+
+	function mature() public{
+		//this function is called when the contract matures
+
 	}
 
 }
