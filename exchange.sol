@@ -18,6 +18,7 @@ contract exchange{
 	using SafeMath for uint;
 	using SafeMath64 for uint64;
 	mapping (address => uint) balance; //the balance account for all traders
+	mapping (address => uint) margin; //the balance of margin account. frozen unless canceled order
 
 	uint constant contract_size = 100; //the number of stocks underlying the contract. Uint is 1 cent USD. 100 cents = 1USD
 	uint constant maturity_date = 20180701; //the maturity date should be in YYYYMMDD 
@@ -103,6 +104,7 @@ contract exchange{
 		}
 
 		uint m=msg.value; //the money sent alone is the margin
+		margin[msg.sender].add(m);
 		ask memory askObj;
 		askObj.margin=m;
 		askObj.price=p; //the ask price is passed in as a parameter
@@ -240,12 +242,28 @@ contract exchange{
 	}
 
 	function cancelBid() public{
+		//the node id
 		uint64 id=bidorders[msg.sender];
-
+		delete bidnodes[id]; //delete from orderbook 
+		if (bidnodes.length==0){
+			BidOrderBook.remove(id);
+		}
+		bidorders[msg.sender]=0;//reset the bidorders 
 	}
 
 	function cancelAsk() public{
+		//the node id 
 		uint64 id=askorders[msg.sender];
+		ask memory askObj;
+		askObj=asknodes[id];
+		//recover the margin value
+		margin[msg.sender].sub(askObj.margin);
+		balance[msg.sender].add(askObj.margin);
+		delete asknodes[id]; //delete from orderbook
+		if(asknodes.length==0){
+			AskOrderBook.remove(id);
+		}
+		askorders[msg.sender]=0;
 	}
 
 }
